@@ -64,17 +64,21 @@ invalid_option:
 int main(int argc, char** argv) {
 	clargs_h h = clargs_parse(argc, argv);
 	if (!h || clargs_opt_has(h, "help")) {
+		clargs_destroy(h);
 		print_prompt(argv[0]);
 		return 0;
 	}
 	if (clargs_opt_has(h, "version")) {
+		clargs_destroy(h);
 		KLOGI(TAG, "git commit id: %s", MACRO_TO_STRING(GIT_COMMIT_ID));
 		return 0;
 	}
 	CmdlineArgs cmdargs;
 	if (!parse_cmdline(h, cmdargs)) {
+		clargs_destroy(h);
 		return 1;
 	}
+	clargs_destroy(h);
 
 	run(cmdargs);
 	return 0;
