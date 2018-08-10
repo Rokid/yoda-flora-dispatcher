@@ -16,8 +16,10 @@ static void print_prompt(const char* progname) {
 	static const char* prompt =
 		"USAGE: %s [options]\n"
 		"options:\n"
-		"\t--help  打印帮助信息\n"
-		"\t--version 版本号\n"
+		"\t--help    打印帮助信息\n"
+		"\t--version    版本号\n"
+		"\t--uri=*    指定flora服务uri\n"
+		"\t--msg-buf-size=*    指定flora消息缓冲区大小\n"
 		;
 	KLOGI(TAG, prompt, progname);
 }
