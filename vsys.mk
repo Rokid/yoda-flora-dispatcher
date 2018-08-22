@@ -8,5 +8,5 @@ include $(build-executable)
 include $(clear-vars)
 local.module := flora-dispatcher.ndk
 local.ndk-script := $(local-path)/ndk.mk
-local.ndk-modules := flora
+local.ndk-modules := flora-svc
 include $(build-ndk-module)
