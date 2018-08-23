@@ -27,7 +27,7 @@ static void print_prompt(const char* progname) {
 class CmdlineArgs {
 public:
 	uint32_t msg_buf_size = 0;
-	string uri = "tcp://0.0.0.0:2517/";
+	string uri = "unix:flora-dispatcher-socket";
 };
 
 void run(CmdlineArgs& args);
