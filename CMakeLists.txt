@@ -56,3 +56,6 @@ target_link_libraries(flora-dispatcher
 	${mutils_LIBRARIES}
 	${flora_LIBRARIES}
 )
+install(TARGETS flora-dispatcher
+	RUNTIME DESTINATION bin
+)
