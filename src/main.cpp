@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "flora-svc.h"
 #include "clargs.h"
 #include "rlog.h"
@@ -21,6 +24,7 @@ static void print_prompt(const char* progname) {
     "\t--version    版本号\n"
     "\t--uri=*    指定flora服务uri\n"
     "\t--msg-buf-size=*    指定flora消息缓冲区大小\n"
+    "\t--log-file=*    指定log输出文件路径"
     ;
   KLOGI(TAG, prompt, progname);
 }
@@ -29,6 +33,7 @@ class CmdlineArgs {
 public:
   uint32_t msg_buf_size = 0;
   string uri = "unix:flora-dispatcher-socket";
+  string log_file;
 };
 
 void run(CmdlineArgs& args);
@@ -51,6 +56,8 @@ static bool parse_cmdline(clargs_h h, CmdlineArgs& res) {
       if (val[0] == '\0')
         goto invalid_option;
       res.uri = val;
+    } else if (strcmp(key, "log-file") == 0) {
+      res.log_file = val;
     } else
       goto invalid_option;
   }
@@ -87,7 +94,18 @@ int main(int argc, char** argv) {
   return 0;
 }
 
+static void set_log_file(const std::string& file) {
+  if (file.length() == 0)
+    return;
+  int fd = open(file.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0644);
+  if (fd < 0)
+    return;
+  rokid_log_ctl(ROKID_LOG_CTL_DEFAULT_ENDPOINT, "file", fd);
+}
+
 void run(CmdlineArgs& args) {
+  set_log_file(args.log_file);
+
   KLOGI(TAG, "msg buf size = %u", args.msg_buf_size);
   shared_ptr<Dispatcher> disp = Dispatcher::new_instance(args.msg_buf_size);
   KLOGI(TAG, "uri = %s", args.uri.c_str());
