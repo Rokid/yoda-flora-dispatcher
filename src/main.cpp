@@ -35,7 +35,7 @@ public:
   uint32_t msg_buf_size = 0;
   string uri = "unix:flora-dispatcher-socket";
   string log_file;
-  int32_t log_port;
+  int32_t log_port = 0;
 };
 
 void run(CmdlineArgs& args);
