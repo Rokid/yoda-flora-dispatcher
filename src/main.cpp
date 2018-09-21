@@ -25,6 +25,7 @@ static void print_prompt(const char* progname) {
     "\t--uri=*    指定flora服务uri\n"
     "\t--msg-buf-size=*    指定flora消息缓冲区大小\n"
     "\t--log-file=*    指定log输出文件路径"
+    "\t--log-service-port=*    指定log服务端口"
     ;
   KLOGI(TAG, prompt, progname);
 }
@@ -34,6 +35,7 @@ public:
   uint32_t msg_buf_size = 0;
   string uri = "unix:flora-dispatcher-socket";
   string log_file;
+  int32_t log_port;
 };
 
 void run(CmdlineArgs& args);
@@ -58,6 +60,13 @@ static bool parse_cmdline(clargs_h h, CmdlineArgs& res) {
       res.uri = val;
     } else if (strcmp(key, "log-file") == 0) {
       res.log_file = val;
+    } else if (strcmp(key, "log-service-port") == 0) {
+      if (val[0] == '\0')
+        goto invalid_option;
+      iv = strtol(val, &ep, 10);
+      if (ep[0] != '\0')
+        goto invalid_option;
+      res.log_port = iv;
     } else
       goto invalid_option;
   }
@@ -94,17 +103,28 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-static void set_log_file(const std::string& file) {
+static bool set_log_file(const std::string& file) {
   if (file.length() == 0)
-    return;
+    return false;
   int fd = open(file.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0644);
   if (fd < 0)
-    return;
+    return false;
   rokid_log_ctl(ROKID_LOG_CTL_DEFAULT_ENDPOINT, "file", fd);
+  return true;
+}
+
+static void set_log_port(int32_t port) {
+  if (port > 0) {
+    TCPSocketArg arg;
+    arg.host = "0.0.0.0";
+    arg.port = port;
+    rokid_log_ctl(ROKID_LOG_CTL_DEFAULT_ENDPOINT, "tcp-socket", &arg);
+  }
 }
 
 void run(CmdlineArgs& args) {
-  set_log_file(args.log_file);
+  if (!set_log_file(args.log_file))
+    set_log_port(args.log_port);
 
   KLOGI(TAG, "msg buf size = %u", args.msg_buf_size);
   shared_ptr<Dispatcher> disp = Dispatcher::new_instance(args.msg_buf_size);
