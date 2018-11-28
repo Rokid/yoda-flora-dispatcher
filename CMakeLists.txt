@@ -24,7 +24,7 @@ set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${common_ldflags}")
 
 include(${CUSTOM_CMAKE_MODULES}/common.mk)
 
-git_commit_id(commit_id)
+git_commit_id(commit_id ${OVERRIDE_SOURCE_DIR})
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIT_COMMIT_ID=${commit_id}")
 
 findPackage(mutils REQUIRED
