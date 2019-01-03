@@ -32,8 +32,16 @@ static void print_prompt(const char* progname) {
 
 class CmdlineArgs {
 public:
+  CmdlineArgs() {
+    uris.reserve(2);
+  }
+
+  void add_uri(const char* uri) {
+    uris.emplace_back(uri);
+  }
+
   uint32_t msg_buf_size = 0;
-  string uri = "unix:flora-dispatcher-socket";
+  vector<string> uris;
   string log_file;
   int32_t log_port = 0;
 };
@@ -54,7 +62,7 @@ static bool parse_cmdline(shared_ptr<CLArgs> &clargs, CmdlineArgs& res) {
     } else if (pair.match("uri")) {
       if (pair.value == nullptr || pair.value[0] == '\0')
         goto invalid_option;
-      res.uri = pair.value;
+      res.add_uri(pair.value);
     } else if (pair.match("log-file")) {
       res.log_file = pair.value;
     } else if (pair.match("log-service-port")) {
@@ -64,6 +72,10 @@ static bool parse_cmdline(shared_ptr<CLArgs> &clargs, CmdlineArgs& res) {
     } else {
       goto invalid_option;
     }
+  }
+  if (res.uris.empty()) {
+    KLOGE(TAG, "missing service uri");
+    return false;
   }
   return true;
 
@@ -76,20 +88,20 @@ invalid_option:
 }
 
 int main(int argc, char** argv) {
-  shared_ptr<CLArgs> clargs = CLArgs::parse(argc, argv);
-  if (clargs == nullptr || clargs->find("help", nullptr, nullptr)) {
+  shared_ptr<CLArgs> h = CLArgs::parse(argc, argv);
+  if (h == nullptr || h->find("help", nullptr, nullptr)) {
     print_prompt(argv[0]);
     return 0;
   }
-  if (clargs->find("version", nullptr, nullptr)) {
+  if (h->find("version", nullptr, nullptr)) {
     KLOGI(TAG, "git commit id: %s", MACRO_TO_STRING(GIT_COMMIT_ID));
     return 0;
   }
   CmdlineArgs cmdargs;
-  if (!parse_cmdline(clargs, cmdargs)) {
+  if (!parse_cmdline(h, cmdargs)) {
     return 1;
   }
-  clargs.reset();
+  h.reset();
 
   run(cmdargs);
   return 0;
@@ -118,16 +130,24 @@ void run(CmdlineArgs& args) {
   if (!set_log_file(args.log_file))
     set_log_port(args.log_port);
 
-  KLOGI(TAG, "msg buf size = %u", args.msg_buf_size);
+  KLOGI(TAG, "msg buf size = %u, uri count %d", args.msg_buf_size,
+      args.uris.size());
   shared_ptr<Dispatcher> disp = Dispatcher::new_instance(
       FLORA_DISP_FLAG_MONITOR, args.msg_buf_size);
-  KLOGI(TAG, "uri = %s", args.uri.c_str());
-  shared_ptr<Poll> tcp_poll = Poll::new_instance(args.uri.c_str());
-  if (tcp_poll.get() == nullptr) {
-    KLOGE(TAG, "create poll failed for uri %s", args.uri.c_str());
-    return;
+  size_t i;
+  vector<shared_ptr<Poll> > polls;
+  polls.reserve(2);
+  for (i = 0; i < args.uris.size(); ++i) {
+    KLOGI(TAG, "uri = %s", args.uris[i].c_str());
+    shared_ptr<Poll> tpoll = Poll::new_instance(args.uris[i].c_str());
+    if (tpoll.get() == nullptr) {
+      KLOGE(TAG, "create poll failed for uri %s", args.uris[i].c_str());
+      return;
+    }
+    tpoll->start(disp);
+    polls.push_back(tpoll);
   }
-  tcp_poll->start(disp);
   disp->run(true);
-  tcp_poll->stop();
+  for (i = 0; i < polls.size(); ++i)
+    polls[i]->stop();
 }
