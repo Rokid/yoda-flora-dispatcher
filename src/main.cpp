@@ -135,10 +135,6 @@ void run(CmdlineArgs& args) {
     return;
   }
   tcp_poll->start(disp);
-
-  while (true) {
-    sleep(0xffffffff);
-  }
-
+  disp->run(true);
   tcp_poll->stop();
 }
