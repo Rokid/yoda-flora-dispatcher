@@ -40,64 +40,56 @@ public:
 
 void run(CmdlineArgs& args);
 
-static bool parse_cmdline(clargs_h h, CmdlineArgs& res) {
-  const char* key;
-  const char* val;
-  char* ep;
-  long iv;
+static bool parse_cmdline(shared_ptr<CLArgs> &clargs, CmdlineArgs& res) {
+  int32_t iv;
+  uint32_t i;
+  CLPair pair;
 
-  while (clargs_opt_next(h, &key, &val) == 0) {
-    if (strcmp(key, "msg-buf-size") == 0) {
-      if (val[0] == '\0')
-        goto invalid_option;
-      iv = strtol(val, &ep, 10);
-      if (ep[0] != '\0')
+  for (i = 1; i < clargs->size(); ++i) {
+    clargs->at(i, pair);
+    if (pair.match("msg-buf-size")) {
+      if (!pair.to_integer(iv))
         goto invalid_option;
       res.msg_buf_size = iv;
-    } else if (strcmp(key, "uri") == 0) {
-      if (val[0] == '\0')
+    } else if (pair.match("uri")) {
+      if (pair.value == nullptr || pair.value[0] == '\0')
         goto invalid_option;
-      res.uri = val;
-    } else if (strcmp(key, "log-file") == 0) {
-      res.log_file = val;
-    } else if (strcmp(key, "log-service-port") == 0) {
-      if (val[0] == '\0')
-        goto invalid_option;
-      iv = strtol(val, &ep, 10);
-      if (ep[0] != '\0')
+      res.uri = pair.value;
+    } else if (pair.match("log-file")) {
+      res.log_file = pair.value;
+    } else if (pair.match("log-service-port")) {
+      if (!pair.to_integer(iv))
         goto invalid_option;
       res.log_port = iv;
-    } else
+    } else {
       goto invalid_option;
+    }
   }
   return true;
 
 invalid_option:
-  if (val[0])
-    KLOGE(TAG, "invalid option: --%s=%s", key, val);
+  if (pair.value)
+    KLOGE(TAG, "invalid option: --%s=%s", pair.key, pair.value);
   else
-    KLOGE(TAG, "invalid option: --%s", key);
+    KLOGE(TAG, "invalid option: --%s", pair.key);
   return false;
 }
 
 int main(int argc, char** argv) {
-  clargs_h h = clargs_parse(argc, argv);
-  if (!h || clargs_opt_has(h, "help")) {
-    clargs_destroy(h);
+  shared_ptr<CLArgs> clargs = CLArgs::parse(argc, argv);
+  if (clargs == nullptr || clargs->find("help", nullptr, nullptr)) {
     print_prompt(argv[0]);
     return 0;
   }
-  if (clargs_opt_has(h, "version")) {
-    clargs_destroy(h);
+  if (clargs->find("version", nullptr, nullptr)) {
     KLOGI(TAG, "git commit id: %s", MACRO_TO_STRING(GIT_COMMIT_ID));
     return 0;
   }
   CmdlineArgs cmdargs;
-  if (!parse_cmdline(h, cmdargs)) {
-    clargs_destroy(h);
+  if (!parse_cmdline(clargs, cmdargs)) {
     return 1;
   }
-  clargs_destroy(h);
+  clargs.reset();
 
   run(cmdargs);
   return 0;
