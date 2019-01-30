@@ -116,7 +116,7 @@ static bool set_log_file(const std::string& file) {
 static void set_log_port(int32_t port) {
   if (port > 0) {
     TCPSocketArg arg;
-    arg.host = "0.0.0.0";
+    arg.host = "127.0.0.1";
     arg.port = port;
     rokid_log_ctl(ROKID_LOG_CTL_DEFAULT_ENDPOINT, "tcp-socket", &arg);
   }
