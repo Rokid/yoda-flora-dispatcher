@@ -24,7 +24,7 @@ static void print_prompt(const char* progname) {
     "\t--version    版本号\n"
     "\t--uri=*    指定flora服务uri\n"
     "\t--msg-buf-size=*    指定flora消息缓冲区大小\n"
-    "\t--log-file=*    指定log输出文件路径"
+    "\t--log-file=*    指定log输出文件路径\n"
     "\t--log-service-port=*    指定log服务端口"
     ;
   KLOGI(TAG, prompt, progname);
