@@ -119,7 +119,8 @@ void run(CmdlineArgs& args) {
     set_log_port(args.log_port);
 
   KLOGI(TAG, "msg buf size = %u", args.msg_buf_size);
-  shared_ptr<Dispatcher> disp = Dispatcher::new_instance(args.msg_buf_size);
+  shared_ptr<Dispatcher> disp = Dispatcher::new_instance(
+      FLORA_DISP_FLAG_MONITOR, args.msg_buf_size);
   KLOGI(TAG, "uri = %s", args.uri.c_str());
   shared_ptr<Poll> tcp_poll = Poll::new_instance(args.uri.c_str());
   if (tcp_poll.get() == nullptr) {
