@@ -113,22 +113,29 @@ static bool set_log_file(const std::string& file) {
   int fd = open(file.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0644);
   if (fd < 0)
     return false;
-  rokid_log_ctl(ROKID_LOG_CTL_DEFAULT_ENDPOINT, "file", fd);
-  return true;
+  if (RLog::add_endpoint("file", ROKID_LOGWRITER_FD) != 0) {
+    ::close(fd);
+    return false;
+  }
+  return RLog::enable_endpoint("file", (void *)(intptr_t)fd, true) == 0;
 }
 
-static void set_log_port(int32_t port) {
+static bool set_log_port(int32_t port) {
   if (port > 0) {
-    TCPSocketArg arg;
-    arg.host = "0.0.0.0";
-    arg.port = port;
-    rokid_log_ctl(ROKID_LOG_CTL_DEFAULT_ENDPOINT, "tcp-socket", &arg);
+    char uri[32];
+    snprintf(uri, sizeof(uri), "tcp://%s:%d/", "0.0.0.0", port);
+    if (RLog::add_endpoint("socket", ROKID_LOGWRITER_SOCKET) != 0)
+      return false;
+    return RLog::enable_endpoint("socket", (void *)uri, true) == 0;
   }
+  return false;
 }
 
 void run(CmdlineArgs& args) {
-  if (!set_log_file(args.log_file))
-    set_log_port(args.log_port);
+  bool b1 = set_log_file(args.log_file);
+  bool b2 = set_log_port(args.log_port);
+  if (b1 || b2)
+    RLog::remove_endpoint("std");
 
   KLOGI(TAG, "msg buf size = %u, uri count %d", args.msg_buf_size,
       args.uris.size());
