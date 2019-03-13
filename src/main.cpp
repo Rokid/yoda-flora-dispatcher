@@ -26,6 +26,7 @@ static void print_prompt(const char* progname) {
     "\t--msg-buf-size=*    指定flora消息缓冲区大小\n"
     "\t--log-file=*    指定log输出文件路径\n"
     "\t--log-service-port=*    指定log服务端口"
+    "\t--keepalive-timeout=*   tcp连接keepalive超时时间"
     ;
   KLOGI(TAG, prompt, progname);
 }
@@ -44,6 +45,7 @@ public:
   vector<string> uris;
   string log_file;
   int32_t log_port = 0;
+  uint32_t keepalive_timeout = 60000;
 };
 
 void run(CmdlineArgs& args);
@@ -69,6 +71,10 @@ static bool parse_cmdline(shared_ptr<CLArgs> &clargs, CmdlineArgs& res) {
       if (!pair.to_integer(iv))
         goto invalid_option;
       res.log_port = iv;
+    } else if (pair.match("keepalive-timeout")) {
+      if (!pair.to_integer(iv))
+        goto invalid_option;
+      res.keepalive_timeout = iv;
     } else {
       goto invalid_option;
     }
@@ -151,6 +157,7 @@ void run(CmdlineArgs& args) {
       KLOGE(TAG, "create poll failed for uri %s", args.uris[i].c_str());
       return;
     }
+    tpoll->config(FLORA_POLL_OPT_KEEPALIVE_TIMEOUT, args.keepalive_timeout);
     tpoll->start(disp);
     polls.push_back(tpoll);
   }
